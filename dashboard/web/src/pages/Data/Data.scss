@@ -1,0 +1,29 @@
+@use "../../styles/tokens" as *;
+
+.data-page {
+  &__intro { display: grid; gap: 8px; }
+  &__kicker { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
+  &__filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  &__charts {
+    display: grid;
+    gap: 12px;
+    transition: opacity 150ms;
+
+    &.is-refreshing { opacity: 0.6; }
+  }
+  &__temps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  @media (max-width: $phone) {
+    &__cards, &__temps { grid-template-columns: minmax(0, 1fr); }
+  }
+}

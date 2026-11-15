@@ -1,0 +1,48 @@
+// Design tokens. Light is the default; dark is its own selected palette, applied
+// for the OS preference and for an explicit data-theme="dark" stamp.
+//
+// --series-N is the fixed colour of the device in slot N (its position in
+// registration order). Validated for colour-vision deficiency, all pairs, in
+// both modes, for three slots.
+
+$light: (
+  page: #f9f9f7,
+  surface: #fcfcfb,
+  text-primary: #0b0b0b,
+  text-secondary: #52514e,
+  text-muted: #898781,
+  grid: #e1e0d9,
+  axis: #c3c2b7,
+  border: rgba(11, 11, 11, 0.1),
+  accent: #2a78d6,
+  warning: #fab219,
+  series-0: #2a78d6,
+  series-1: #eb6834,
+  series-2: #1baf7a,
+);
+
+$dark: (
+  page: #0d0d0d,
+  surface: #1a1a19,
+  text-primary: #f0efec,
+  text-secondary: #c3c2b7,
+  text-muted: #898781,
+  grid: #2c2c2a,
+  axis: #383835,
+  border: rgba(255, 255, 255, 0.1),
+  accent: #3987e5,
+  warning: #fab219,
+  series-0: #3987e5,
+  series-1: #d95926,
+  series-2: #199e70,
+);
+
+@mixin tokens($map) {
+  @each $name, $value in $map {
+    --#{$name}: #{$value};
+  }
+}
+
+$series-count: 3;
+$sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+$phone: 760px;

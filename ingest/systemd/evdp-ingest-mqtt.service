@@ -1,0 +1,15 @@
+[Unit]
+Description=EVDP MQTT ingester (Mosquitto -> SQLite)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/evdp/ingest
+Environment=EVDP_DB=%h/evdp/telemetry.db
+EnvironmentFile=%h/evdp/mqtt.env
+ExecStart=%h/evdp/venv/bin/python -u %h/evdp/ingest/ingest_mqtt.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
