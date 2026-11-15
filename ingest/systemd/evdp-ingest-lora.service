@@ -1,0 +1,13 @@
+[Unit]
+Description=EVDP LoRa ingester (Node 3 serial -> SQLite)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/evdp/ingest
+ExecStart=%h/evdp/venv/bin/python -u %h/evdp/ingest/ingest_lora.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
