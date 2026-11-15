@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from statistics import median
 
 RANGES = {"6h": timedelta(hours=6), "24h": timedelta(hours=24), "7d": timedelta(days=7), "all": None}
-DEFAULT_RANGE = "24h"
+DEFAULT_RANGE = "6h"
 
 REPORT_INTERVAL_S = 30 * 60   # nodes send readings and energy reports every 30 min
 OVERDUE_GRACE_S = 5 * 60      # a report later than interval + grace counts as overdue

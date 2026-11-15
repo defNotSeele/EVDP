@@ -33,7 +33,7 @@ function seriesOf(devices, rows, pick, detail) {
 }
 
 export default function Data() {
-  const [rangeKey, setRangeKey] = useState("24h");
+  const [rangeKey, setRangeKey] = useState("6h");
   const [metricKey, setMetricKey] = useState("battery_level");
   const { data, error, loading } = useEntry(rangeKey);
 
