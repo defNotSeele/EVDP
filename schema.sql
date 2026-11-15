@@ -9,17 +9,12 @@
 --   * UNIQUE(packet_id, transport, node_id) collapses duplicates WITHIN a
 --     transport (mesh rebroadcasts, MQTT redelivery) while preserving
 --     duplicates ACROSS transports.
---   * Timestamps are ISO-8601 UTC. SQLite has no datetime type, and UTC avoids
---     a discontinuity when European clocks change on 2026-10-25, mid-deployment.
---   * environment and device telemetry arrive in SEPARATE packets, so they get
---     separate tables rather than one table full of NULLs.
 
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
 -- ---------------------------------------------------------------- nodes ----
--- Node identity and deployment metadata. Kept separate so renaming a node
--- does not rewrite historical readings.
+-- Registered project nodes. The ingesters only store packets from nodes listed here.
 
 CREATE TABLE IF NOT EXISTS nodes (
   node_id    TEXT PRIMARY KEY,   -- e.g. '!a1f7f284'
@@ -47,6 +42,7 @@ CREATE TABLE IF NOT EXISTS readings (
   rx_rssi      INTEGER,
   temperature  REAL,                      -- degrees Celsius
   humidity     REAL,                      -- percent RH
+  replayed     INTEGER NOT NULL DEFAULT 0,  -- 1: received_at is not the live arrival time
   raw          TEXT,                      -- original payload, for reprocessing
   UNIQUE(packet_id, transport, node_id)
 );

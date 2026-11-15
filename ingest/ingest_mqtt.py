@@ -1,22 +1,10 @@
 #!/usr/bin/env python3
 """MQTT ingester: Mosquitto on the Pi -> SQLite, transport='mqtt'.
 
-Subscribes to msh/# (the topic root changed to msh/EU_868 when the region was
-set, and the channel segment changes with the channel name, so no part of the
-path below msh/ is assumed). Only the readable JSON topics are used:
+Uses the JSON topics only: msh/<region>/2/json/<channel>/<gateway_id>.
+`from` is the originating node; `sender` is the gateway that uplinked it.
 
-    msh/<region>/2/json/<channel>/<gateway_id>
-
-Field mapping (verified 2026-11-15, BUILD_LOG session 3):
-    from      -> node_id (originator; converted to '!xxxxxxxx')
-    sender    -> gateway_id (the node that uplinked it; NOT the originator)
-    id        -> packet_id      timestamp -> packet_time
-    hops_away -> hops           rssi/snr  -> gateway's reception of the LoRa hop
-
-Packets with an empty type (ACK/routing, or PKI DMs the gateway can't decrypt)
-are ignored. Only the project's own node ids are stored.
-
-Credentials come from the environment: EVDP_MQTT_HOST/USER/PASS.
+Environment: EVDP_DB, EVDP_MQTT_PASS, and optionally EVDP_MQTT_HOST/PORT/USER.
 """
 
 import json
@@ -24,13 +12,11 @@ import os
 
 import paho.mqtt.client as mqtt
 
-from common import (PROJECT_NODES, Store, log, node_id_from_num, setup_logging,
-                    to_json, wait_for_clock_sync)
+from common import Store, log, node_id_from_num, require_env, setup_logging, to_json, wait_for_clock_sync
 
 HOST = os.environ.get("EVDP_MQTT_HOST", "localhost")
 PORT = int(os.environ.get("EVDP_MQTT_PORT", "1883"))
 USER = os.environ.get("EVDP_MQTT_USER", "meshtastic")
-PASS = os.environ.get("EVDP_MQTT_PASS")
 TOPIC = "msh/#"
 
 ENV_KEYS = ("temperature", "relative_humidity")
@@ -54,7 +40,7 @@ def on_disconnect(client, userdata, flags, reason_code, properties):
 def on_message(client, userdata, msg):
     parts = msg.topic.split("/")
     if "json" not in parts:
-        return  # binary ServiceEnvelope topics: ignored, the JSON twin carries the same packet
+        return  # the binary /e/ twin carries the same packet
     try:
         data = json.loads(msg.payload)
     except ValueError:
@@ -70,18 +56,15 @@ def handle(data, parts):
     if "from" not in data:
         return
     node_id = node_id_from_num(data["from"])
-    if node_id not in PROJECT_NODES:
+    if not store.is_known(node_id):
         return
     ptype = data.get("type")
     payload = data.get("payload")
     gateway_id = data.get("sender") or parts[-1]
 
     if ptype == "nodeinfo" and isinstance(payload, dict):
-        # hardware arrives as a bare enum number here (e.g. 81); leave hw_model to
-        # the LoRa side, which reports the name (SEEED_XIAO_S3).
-        store.upsert_node(node_id, payload.get("shortname"), payload.get("longname"))
-        log.info("nodeinfo %s %s / %s via %s", node_id, payload.get("longname"),
-                 payload.get("shortname"), gateway_id)
+        # hw_model is left to the LoRa side, which reports the name rather than the enum number
+        store.update_node(node_id, payload.get("shortname"), payload.get("longname"))
         return
     if ptype != "telemetry" or not isinstance(payload, dict):
         return
@@ -99,10 +82,9 @@ def handle(data, parts):
                                 rx_snr=data.get("snr"), rx_rssi=data.get("rssi"),
                                 temperature=payload.get("temperature"),
                                 humidity=payload.get("relative_humidity"))
-        log.info("reading %s id=%s T=%s RH=%s via %s hops=%s snr=%s rssi=%s%s",
-                 node_id, common["packet_id"], payload.get("temperature"),
-                 payload.get("relative_humidity"), gateway_id, data.get("hops_away"),
-                 data.get("snr"), data.get("rssi"), "" if new else " (duplicate)")
+        log.info("reading %s id=%s T=%s RH=%s via %s%s", node_id, common["packet_id"],
+                 payload.get("temperature"), payload.get("relative_humidity"), gateway_id,
+                 "" if new else " duplicate")
     elif any(k in payload for k in DEV_KEYS):
         new = store.add_device_metrics(**common,
                                        battery_level=payload.get("battery_level"),
@@ -112,18 +94,18 @@ def handle(data, parts):
                                        uptime_secs=payload.get("uptime_seconds"))
         log.info("device  %s id=%s batt=%s V=%s via %s%s", node_id, common["packet_id"],
                  payload.get("battery_level"), payload.get("voltage"), gateway_id,
-                 "" if new else " (duplicate)")
+                 "" if new else " duplicate")
 
 
 def main():
     global store
     setup_logging("mqtt")
-    if not PASS:
-        raise SystemExit("EVDP_MQTT_PASS is not set")
+    db_path = require_env("EVDP_DB")
+    password = require_env("EVDP_MQTT_PASS")
     wait_for_clock_sync()
-    store = Store()
+    store = Store(db_path)
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="evdp-ingest-mqtt")
-    client.username_pw_set(USER, PASS)
+    client.username_pw_set(USER, password)
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
