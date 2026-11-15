@@ -1,0 +1,15 @@
+[Unit]
+Description=EVDP dashboard (About page, live data, read-only API)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/evdp/dashboard/api
+Environment=EVDP_DB=%h/evdp/telemetry.db
+Environment=EVDP_WEB_DIST=%h/evdp/dashboard/web/dist
+ExecStart=%h/evdp/venv/bin/waitress-serve --listen=0.0.0.0:8080 --threads=4 app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
