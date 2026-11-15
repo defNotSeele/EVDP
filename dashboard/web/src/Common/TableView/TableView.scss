@@ -1,0 +1,10 @@
+.table-view {
+  summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); }
+
+  &__scroll { max-height: 280px; overflow: auto; margin-top: 8px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  caption { position: absolute; left: -9999px; }
+  th, td { text-align: left; padding: 4px 8px 4px 0; border-bottom: 1px solid var(--grid); }
+  .numeric { text-align: right; font-variant-numeric: tabular-nums; }
+}
